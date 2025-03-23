@@ -17,7 +17,6 @@ router.post('/', upload.single('file'), async (req, res) => {
       Key: file.originalname,
       Body: file.buffer,
       ContentType: file.mimetype,
-      ACL: 'public-read', 
     };
 
     const result = await s3.upload(params).promise();
