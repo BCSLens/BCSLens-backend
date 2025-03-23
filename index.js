@@ -11,6 +11,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 const userRoutes = require('./routes/user');
 app.use('/users', userRoutes);
 
+const uploadRoutes = require('./routes/upload');
+app.use('/upload', uploadRoutes);
+
 const port = 3000;
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
