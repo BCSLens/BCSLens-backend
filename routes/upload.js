@@ -9,7 +9,7 @@ const s3 = new AWS.S3({
   region: 'ap-southeast-1', 
 });
 
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/', upload.single('file'), async (req, res) => {  
   try {
     const file = req.file;
     const params = {
