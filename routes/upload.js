@@ -38,7 +38,7 @@ const path = require("path");
 const fs = require("fs");
 
 // Ensure upload directory exists
-const uploadDir = "/uploads"; // This is mapped to a VM folder using Docker
+const uploadDir = "./uploads"; // This is mapped to a VM folder using Docker
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
