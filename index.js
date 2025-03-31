@@ -7,13 +7,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// เชื่อมต่อ Swagger UI
+// connect to Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// เชื่อมต่อกับ /users route
-const userRoutes = require('./routes/user');
-app.use('/users', userRoutes);
-
+// connect to MongoDB
 const uploadRoutes = require('./routes/upload');
 app.use('/upload', uploadRoutes);
 
