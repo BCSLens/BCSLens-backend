@@ -1,4 +1,3 @@
-// index.js
 const express = require('express');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
@@ -10,7 +9,7 @@ app.use(express.urlencoded({ extended: true }));
 // connect to Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// connect to MongoDB
+// connect to routes
 const uploadRoutes = require('./routes/upload');
 app.use('/upload', uploadRoutes);
 
