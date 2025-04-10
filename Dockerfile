@@ -7,8 +7,10 @@ WORKDIR /app
 # Install Python and required dependencies
 RUN apt-get update && apt-get install -y python3 python3-pip
 
-# Set up the environment for Python dependencies (if any)
+# Copy the Python dependencies file (requirements.txt)
 COPY requirements.txt ./
+
+# Install Python dependencies
 RUN pip3 install -r requirements.txt
 
 # Copy package.json and package-lock.json first to leverage Docker caching
