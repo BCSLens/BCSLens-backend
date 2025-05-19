@@ -68,7 +68,6 @@ router.post('/:petId/records', async (req, res) => {
     const { petId } = req.params;
     const user_id = req.user.id; // from token
 
-    console.log(req.body);
     const {
       date,
       score,
@@ -81,8 +80,6 @@ router.post('/:petId/records', async (req, res) => {
     } = req.body;
 
     if (!score || !date) {
-        console.log(score, date);
-        
       return res.status(400).json({ error: 'Score and date are required' });
     }
 

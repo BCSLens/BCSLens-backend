@@ -84,11 +84,18 @@ router.post('/login', async (req, res) => {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(400).json({ error: 'Invalid email or password' });
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1d' });
+    // Add role to the token payload
+    const token = jwt.sign(
+      { id: user._id, role: user.role }, // Assuming `user.role` exists and stores either 'user' or 'expert'
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
     res.json({ message: 'Login successful', token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 module.exports = router;
