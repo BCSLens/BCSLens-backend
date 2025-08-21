@@ -26,7 +26,10 @@ const petSchema = new Schema({
     max: 11
   },
   gender: String,
-  spay_neuter_status: String,
+  spay_neuter_status: {
+    type: Boolean,
+    default: false
+  },
   species: String,
   group_id: {
     type: mongoose.Schema.Types.ObjectId,
