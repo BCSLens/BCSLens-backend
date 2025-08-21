@@ -11,7 +11,8 @@ router.post('/', async (req, res) => {
     const {
       name,
       breed,
-      age,
+      age_years,
+      age_months,
       gender,
       spay_neuter_status,
       group_id,
@@ -20,7 +21,7 @@ router.post('/', async (req, res) => {
 
     const user_id = req.user.id; // from JWT
 
-    if (!name || !breed || !age || !gender || !spay_neuter_status || !group_id || !species) {
+    if (!name || !breed || !age_years || !age_months || !gender || !spay_neuter_status || !group_id || !species) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -28,7 +29,8 @@ router.post('/', async (req, res) => {
     const newPet = new Pet({
       name,
       breed,
-      age,
+      age_years,
+      age_months,
       gender,
       spay_neuter_status,
       records: [],
