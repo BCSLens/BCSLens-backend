@@ -73,7 +73,7 @@ router.post("/:petId/records", async (req, res) => {
 
     const {
       date,
-      score,
+      bcs_range,
       weight,
       front_image_url,
       back_image_url,
@@ -82,8 +82,8 @@ router.post("/:petId/records", async (req, res) => {
       top_image_url,
     } = req.body;
 
-    if (!score || !date) {
-      return res.status(400).json({ error: "Score and date are required" });
+    if (!bcs_range || !date) {
+      return res.status(400).json({ error: 'bcs_range and date are required' });
     }
 
     const pet = await Pet.findById(petId);
@@ -97,7 +97,7 @@ router.post("/:petId/records", async (req, res) => {
 
     const newRecord = {
       date,
-      score,
+      bcs_range,
       weight,
       front_image_url,
       back_image_url,
