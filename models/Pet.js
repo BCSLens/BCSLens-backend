@@ -18,12 +18,13 @@ const petSchema = new Schema({
   breed: String,
   age_years: {
     type: Number,
-    default: 0
+    default: 0,
   },
   age_months: {
     type: Number,
     default: 0,
-    max: 11
+    min: 0,
+    max: 11,
   },
   gender: String,
   spay_neuter_status: {
@@ -33,15 +34,15 @@ const petSchema = new Schema({
   species: String,
   group_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Group',
-    required: true
+    ref: "Group",
+    required: true,
   },
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "User",
+    required: true,
   },
-  records: [recordSchema]
+  records: [recordSchema],
 });
 
-module.exports = mongoose.model('Pet', petSchema);
+module.exports = mongoose.model("Pet", petSchema);

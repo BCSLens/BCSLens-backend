@@ -29,7 +29,7 @@ const petRoutes = require('./routes/pet');
 const groupRoutes = require('./routes/group');
 
 app.use('/api/users', userRoutes);   // /signup, /login
-app.use('/upload', uploadRoutes);    // other file upload or media routes
+app.use('/api/uploads', uploadRoutes);    // image upload and serving routes
 app.use('/api/pets', petRoutes); 
 app.use('/api/groups', groupRoutes); // /group
 
