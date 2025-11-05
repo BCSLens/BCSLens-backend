@@ -1,0 +1,9 @@
+node_modules/
+uploads/
+venv/
+.env
+*.pyi
+__pycache__/
+*.pyc
+*.pyo
+haarcascade_*
