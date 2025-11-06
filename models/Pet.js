@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 
 const recordSchema = new Schema({
   date: Date,
-  bcs_range: String,
+  bcs_score: Number,
   weight: Number,
   front_image_url: String,
   back_image_url: String,

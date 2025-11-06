@@ -145,7 +145,7 @@ describe('Integration Tests', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           date: '2024-03-15',
-          bcs_range: '5',
+          bcs_score: 5,
           weight: 30.5,
           front_image_url: 'uploads/front.jpg'
         });
@@ -155,7 +155,7 @@ describe('Integration Tests', () => {
       // Step 5: Get pet with records
       mockPetWithRecords.records = [{
         date: '2024-03-15',
-        bcs_range: '5',
+        bcs_score: 5,
         weight: 30.5,
         front_image_url: 'uploads/front.jpg'
       }];
@@ -351,13 +351,13 @@ describe('Integration Tests', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           date: '2024-01-15',
-          bcs_range: '5',
+          bcs_score: 5,
           weight: 30.5
         });
 
       savedPet.records.push({
         date: '2024-01-15',
-        bcs_range: '5',
+        bcs_score: 5,
         weight: 30.5
       });
 
@@ -367,13 +367,13 @@ describe('Integration Tests', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           date: '2024-02-20',
-          bcs_range: '4',
+          bcs_score: 4,
           weight: 29.8
         });
 
       savedPet.records.push({
         date: '2024-02-20',
-        bcs_range: '4',
+        bcs_score: 4,
         weight: 29.8
       });
 
@@ -383,13 +383,13 @@ describe('Integration Tests', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           date: '2024-03-10',
-          bcs_range: '4',
+          bcs_score: 4,
           weight: 29.5
         });
 
       savedPet.records.push({
         date: '2024-03-10',
-        bcs_range: '4',
+        bcs_score: 4,
         weight: 29.5
       });
 

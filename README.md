@@ -271,7 +271,7 @@ Content-Type: application/json
 
 {
   "date": "2025-01-15",
-  "bcs_range": "IDEAL",
+  "bcs_score": 4,
   "weight": 30.5,
   "front_image_url": "http://localhost:3000/upload/1234567890.jpg",
   "back_image_url": "http://localhost:3000/upload/1234567891.jpg",

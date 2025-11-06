@@ -20,9 +20,20 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     const user_id = req.user.id; // from JWT
-
-    if (!name || !breed || !age_years || !age_months || !gender || !spay_neuter_status || !group_id || !species) {
+    
+    // Validate required fields
+    if (!name || !breed || !gender || !group_id || !species) {
       return res.status(400).json({ error: 'All fields are required' });
+    }
+    if (age_years === undefined || age_years === null) {
+      return res.status(400).json({ error: 'age_years is required' });
+    }
+    if (age_months === undefined || age_months === null) {
+      return res.status(400).json({ error: 'age_months is required' });
+    }
+    // spay_neuter_status can be false; only reject if missing (undefined/null)
+    if (spay_neuter_status === undefined || spay_neuter_status === null) {
+      return res.status(400).json({ error: 'spay_neuter_status is required' });
     }
 
     // Step 1: Create the pet
@@ -72,7 +83,7 @@ router.post('/:petId/records', async (req, res) => {
 
     const {
       date,
-      bcs_range,
+      bcs_score,
       weight,
       front_image_url,
       back_image_url,
@@ -81,8 +92,8 @@ router.post('/:petId/records', async (req, res) => {
       top_image_url,
     } = req.body;
 
-    if (!bcs_range || !date) {
-      return res.status(400).json({ error: 'bcs_range and date are required' });
+    if (!bcs_score || !date) {
+      return res.status(400).json({ error: 'bcs_score and date are required' });
     }
 
     const pet = await Pet.findById(petId);
@@ -94,7 +105,7 @@ router.post('/:petId/records', async (req, res) => {
 
     const newRecord = {
       date,
-      bcs_range,
+      bcs_score,
       weight,
       front_image_url,
       back_image_url,
