@@ -154,7 +154,7 @@ describe('Pet Management', () => {
     test('TC-PET-005: Should add record to pet with valid data', async () => {
       const recordData = {
         date: '2024-03-15',
-        bcs_range: '5',
+        bcs_score: 5,
         weight: 31.2,
         front_image_url: 'uploads/front3.jpg'
       };
@@ -179,7 +179,7 @@ describe('Pet Management', () => {
     test('TC-PET-006: Should fail with missing required fields', async () => {
       const incompleteRecordData = {
         weight: 31.2
-        // Missing date and bcs_range
+        // Missing date and bcs_score
       };
 
       const response = await request(app)
@@ -188,13 +188,13 @@ describe('Pet Management', () => {
         .send(incompleteRecordData);
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe('bcs_range and date are required');
+      expect(response.body.error).toBe('bcs_score and date are required');
     });
 
     test('TC-PET-007: Should fail for non-existent pet', async () => {
       const recordData = {
         date: '2024-03-15',
-        bcs_range: '5'
+        bcs_score: 5
       };
 
       Pet.findById = jest.fn().mockResolvedValue(null);
@@ -211,7 +211,7 @@ describe('Pet Management', () => {
     test('TC-PET-008: Should fail for pet owned by different user', async () => {
       const recordData = {
         date: '2024-03-15',
-        bcs_range: '5'
+        bcs_score: 5
       };
 
       // User1 trying to add record to User2's pet
@@ -282,7 +282,7 @@ describe('Pet Management', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('date', '2024-03-15'); // Latest record
-      expect(response.body).toHaveProperty('bcs_range', '5');
+      expect(response.body).toHaveProperty('bcs_score', 5);
     });
 
     test('TC-PET-014: Should fail for pet with no records', async () => {

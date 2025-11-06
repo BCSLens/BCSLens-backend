@@ -63,7 +63,7 @@ const mockPets = {
       {
         _id: '507f1f77bcf86cd799439041',
         date: '2024-01-15',
-        bcs_range: '5',
+        bcs_score: 5,
         weight: 30.5,
         front_image_url: 'uploads/front1.jpg',
         back_image_url: 'uploads/back1.jpg'
@@ -71,7 +71,7 @@ const mockPets = {
       {
         _id: '507f1f77bcf86cd799439042',
         date: '2024-02-20',
-        bcs_range: '4',
+        bcs_score: 4,
         weight: 29.8,
         front_image_url: 'uploads/front2.jpg'
       }
