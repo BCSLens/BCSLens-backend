@@ -7,3 +7,7 @@ __pycache__/
 *.pyc
 *.pyo
 haarcascade_*
+
+# Log files
+logs/
+*.log

@@ -30,13 +30,19 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'expert'],
+    enum: ["expert", "pet-owner"],
     default: 'user',
+  },
+  privacyConsent: {
+    accepted: { type: Boolean, default: false },
+    acceptedAt: { type: Date },
+    policyVersion: { type: String, default: "v1.0" }
   },
   pets_group: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Group' }], 
     default: [],
-  }
+  },
+  refreshToken: { type: String, default: null }
 }, { timestamps: true });
 
 // Hash password before saving
