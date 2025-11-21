@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const mongoSanitize = require('express-mongo-sanitize');
 const { generalLimiter } = require('./middleware/rateLimiter');
+const helmet = require("helmet");
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
@@ -18,6 +19,8 @@ process.on('unhandledRejection', (reason, promise) => {
 dotenv.config(); // Load environment variables
 
 const app = express();
+
+app.use(helmet());
 
 // Middleware
 app.use(express.json());

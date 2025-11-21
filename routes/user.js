@@ -11,6 +11,9 @@ const {
 } = require("../middleware/validators");
 const logger = require("../config/logger");
 const { loginLimiter } = require("../middleware/rateLimiter");
+const { OAuth2Client } = require("google-auth-library");
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const POLICY_VERSION = process.env.PRIVACY_POLICY_VERSION;
 
@@ -295,57 +298,143 @@ router.get(
 router.post("/refresh", async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
-    logger.warn('Missing refresh token in token refresh attempt', {
-      ip: req.ip
+    logger.warn("Missing refresh token in token refresh attempt", {
+      ip: req.ip,
     });
     return res.status(401).json({ error: "Missing refresh token" });
   }
 
-
   try {
     const user = await User.findOne({ refreshToken });
     if (!user) {
-      logger.warn('Invalid refresh token attempt', {
-        ip: req.ip
+      logger.warn("Invalid refresh token attempt", {
+        ip: req.ip,
       });
       return res.status(403).json({ error: "Invalid refresh token" });
     }
 
-    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, decoded) => {
-      if (err) {
-        logger.warn('Expired or invalid refresh token attempt', {
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (err, decoded) => {
+        if (err) {
+          logger.warn("Expired or invalid refresh token attempt", {
+            userId: user._id,
+            ip: req.ip,
+          });
+          return res
+            .status(403)
+            .json({ error: "Expired or invalid refresh token" });
+        }
+
+        const { accessToken, refreshToken: newRefreshToken } =
+          generateTokens(user);
+
+        // update refresh token ใน DB
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+        logger.info("Refresh token rotated successfully", {
           userId: user._id,
-          ip: req.ip
+          ip: req.ip,
         });
-        return res.status(403).json({ error: "Expired or invalid refresh token" });
+
+        res.json({
+          accessToken,
+          refreshToken: newRefreshToken,
+        });
       }
-
-      const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
-
-      // update refresh token ใน DB
-      user.refreshToken = newRefreshToken;
-      await user.save();
-
-      logger.info('Refresh token rotated successfully', {
-        userId: user._id,
-        ip: req.ip
-      });
-
-      res.json({
-        accessToken,
-        refreshToken: newRefreshToken
-      });
-    });
-
+    );
   } catch (err) {
-    logger.error('Token refresh error', {
+    logger.error("Token refresh error", {
       error: err.message,
       stack: err.stack,
-      ip: req.ip
+      ip: req.ip,
     });
     res.status(500).json({ error: err.message });
   }
 });
 
+/**
+ * @route POST /api/users/google-login
+ * @desc Verify Google idToken from Flutter & login/register user
+ */
+router.post("/google-login", async (req, res) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    logger.warn("Missing idToken in Google login attempt", {
+      ip: req.ip,
+    });
+    return res.status(400).json({ error: "Missing idToken" });
+  }
+
+  try {
+    // verify token กับ Google
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const googleId = payload.sub; // unique Google user id
+    const email = payload.email;
+    const name = payload.name;
+
+    // ตรวจสอบว่าผู้ใช้มีอยู่ใน DB หรือยัง
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // ถ้าไม่มี → สร้าง user ใหม่
+      user = new User({
+        firstname: name.split(" ")[0],
+        lastname: name.split(" ")[1] || "",
+        email,
+        username: email,
+        password: null, // OAuth user ไม่มี password
+        role: "pet-owner", // default role
+        privacyConsent: {
+          accepted: true,
+          acceptedAt: new Date(),
+          policyVersion: POLICY_VERSION || "v1.0",
+        },
+      });
+
+      await user.save();
+    }
+
+    // สร้าง JWT ของระบบเอง
+    const { accessToken, refreshToken } = generateTokens(user);
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    logger.info("User logged in via Google", {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip,
+    });
+
+    res.json({
+      message: "Login successful",
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    logger.error("Google login error", {
+      error: err.message,
+      stack: err.stack,
+      ip: req.ip,
+    });
+    res.status(401).json({ error: "Invalid idToken" });
+  }
+});
 
 module.exports = router;
