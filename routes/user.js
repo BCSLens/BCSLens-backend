@@ -21,6 +21,18 @@ if (!POLICY_VERSION) {
   console.warn("POLICY_VERSION not set, using default 'v1.0'");
 }
 
+// JWT Secret Validation
+
+if (!process.env.ACCESS_TOKEN_SECRET || 
+    process.env.ACCESS_TOKEN_SECRET.length < 32) {
+  throw new Error('ACCESS_TOKEN_SECRET must be at least 32 characters');
+}
+
+if (!process.env.REFRESH_TOKEN_SECRET || 
+    process.env.REFRESH_TOKEN_SECRET.length < 32) {
+  throw new Error('REFRESH_TOKEN_SECRET must be at least 32 characters');
+}
+
 function generateTokens(user) {
   const accessToken = jwt.sign(
     { id: user._id.toString(), role: user.role },
@@ -434,6 +446,32 @@ router.post("/google-login", async (req, res) => {
       ip: req.ip,
     });
     res.status(401).json({ error: "Invalid idToken" });
+  }
+});
+
+/** * @route POST /api/users/logout
+ * @desc Logout user by invalidating refresh token
+ * @access Private
+ */
+router.post("/logout", authenticateToken(), async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user) {
+      user.refreshToken = null; // invalidate current refresh token
+      await user.save();
+    }
+
+    logger.info("User logged out", { userId: req.user.id, ip: req.ip });
+
+    res.json({ message: "Logout successful" });
+  } catch (err) {
+    logger.error("Logout error", {
+      error: err.message,
+      stack: err.stack,
+      userId: req.user?.id,
+      ip: req.ip,
+    });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
