@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const mongoSanitize = require('express-mongo-sanitize');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const helmet = require("helmet");
+const cors = require('cors');
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
@@ -15,12 +16,18 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-
 dotenv.config(); // Load environment variables
 
 const app = express();
 
+// Security Middlewares
 app.use(helmet());
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  credentials: true
+}));
 
 // Middleware
 app.use(express.json());

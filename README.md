@@ -141,6 +141,9 @@ GOOGLE_CLIENT_ID=your-google-client-id-from-console.apps.googleusercontent.com
 
 # Privacy Policy
 PRIVACY_POLICY_VERSION=v1.0
+
+# CORS Configuration
+ALLOWED_ORIGINS=list-of-frontend-urls-all-allowed-to-access-api
 ```
 
 **Important Security Notes:**
@@ -325,6 +328,23 @@ Content-Type: application/json
 ```
 
 **Note:** Refresh token is automatically rotated on each use for enhanced security.
+
+
+#### User Logout (Email/Password)
+```http
+POST /api/users/logout
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{}
+```
+
+**Response:**
+```json
+{
+  "message": "Logout successful"
+}
+```
 
 #### Get Current User Profile
 ```http
