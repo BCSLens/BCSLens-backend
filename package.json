@@ -29,6 +29,7 @@
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.3.0",
     "expresss": "^0.0.0",
+    "file-type": "^21.1.1",
     "fs": "^0.0.1-security",
     "google-auth-library": "^10.5.0",
     "helmet": "^8.1.0",

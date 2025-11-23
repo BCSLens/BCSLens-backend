@@ -23,27 +23,31 @@ if (!POLICY_VERSION) {
 
 // JWT Secret Validation
 
-if (!process.env.ACCESS_TOKEN_SECRET || 
-    process.env.ACCESS_TOKEN_SECRET.length < 32) {
-  throw new Error('ACCESS_TOKEN_SECRET must be at least 32 characters');
+if (
+  !process.env.ACCESS_TOKEN_SECRET ||
+  process.env.ACCESS_TOKEN_SECRET.length < 32
+) {
+  throw new Error("ACCESS_TOKEN_SECRET must be at least 32 characters");
 }
 
-if (!process.env.REFRESH_TOKEN_SECRET || 
-    process.env.REFRESH_TOKEN_SECRET.length < 32) {
-  throw new Error('REFRESH_TOKEN_SECRET must be at least 32 characters');
+if (
+  !process.env.REFRESH_TOKEN_SECRET ||
+  process.env.REFRESH_TOKEN_SECRET.length < 32
+) {
+  throw new Error("REFRESH_TOKEN_SECRET must be at least 32 characters");
 }
 
 function generateTokens(user) {
   const accessToken = jwt.sign(
     { id: user._id.toString(), role: user.role },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: "15m", algorithm: "HS256" }
   );
 
   const refreshToken = jwt.sign(
     { id: user._id.toString() },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "7d", algorithm: "HS256" }
   );
 
   return { accessToken, refreshToken };

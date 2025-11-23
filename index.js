@@ -21,11 +21,43 @@ dotenv.config(); // Load environment variables
 const app = express();
 
 // Security Middlewares
-app.use(helmet());
+app.use(
+  helmet({
+    // HSTS: V3.4.1
+    hsts: {
+      maxAge: 31536000,       // 1 ปี
+      includeSubDomains: true, // ครอบคลุม subdomains
+      preload: true
+    },
+    // X-Content-Type-Options: V3.4.4
+    contentTypeOptions: true,
+    // Frameguard ไม่ใช้ X-Frame-Options (obsolete), ใช้ CSP แทน
+    frameguard: false
+  })
+);
+
+// Content-Security-Policy: V3.4.3 + 3.4.6
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],       // โหลด content จากแหล่งของตัวเองเท่านั้น
+      objectSrc: ["'none'"],        // object/embed ไม่อนุญาต
+      baseUri: ["'none'"],          // base tag ไม่อนุญาต
+      scriptSrc: ["'self'"],        // สคริปต์จากตัวเอง (ถ้าต้องใช้ nonce/hash สามารถเพิ่มได้)
+      styleSrc: ["'self'"],         // style จากตัวเอง
+      frameAncestors: ["'none'"],   // ป้องกัน embedding, 3.4.6
+      imgSrc: ["'self'", "data:"],  // รูปภาพจากตัวเองและ data URLs (ปรับได้ตามต้องการ)
+      fontSrc: ["'self'"],          // fonts จากตัวเอง
+      connectSrc: ["'self'"],       // API requests
+      mediaSrc: ["'self'"]
+    },
+    reportOnly: false // ตั้งเป็น true ถ้าอยาก test ก่อน
+  })
+);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  origin: process.env.ALLOWED_ORIGINS?.split(','),
   credentials: true
 }));
 
