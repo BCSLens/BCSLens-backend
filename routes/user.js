@@ -199,6 +199,18 @@ router.post(
         return res.status(400).json({ error: "Invalid email or password" });
       }
 
+      if (!user.password) {
+        logger.warn("Login attempt for OAuth user with password.", {
+          userId: user._id,
+          email,
+          ip: req.ip,
+          userAgent: req.get("user-agent"),
+        });
+        return res
+          .status(400)
+          .json({ error: "This account uses Google login." });
+      }
+
       const isMatch = await user.comparePassword(password);
       if (!isMatch) {
         logger.warn("Login attempt with incorrect password", {
@@ -403,8 +415,8 @@ router.post("/google-login", async (req, res) => {
     if (!user) {
       // ถ้าไม่มี → สร้าง user ใหม่
       user = new User({
-        firstname: name.split(" ")[0],
-        lastname: name.split(" ")[1] || "",
+        firstname: name ? name.split(" ")[0] : "User",
+        lastname: name && name.split(" ").length > 1 ? name.split(" ")[1] : "",
         email,
         username: email,
         password: null, // OAuth user ไม่มี password
@@ -449,7 +461,16 @@ router.post("/google-login", async (req, res) => {
       stack: err.stack,
       ip: req.ip,
     });
-    res.status(401).json({ error: "Invalid idToken" });
+
+    let errorMessage = "Invalid idToken";
+    if ( err.message && err.message.includes("audience")) {
+      errorMessage = "GOOGLE_CLIENT_ID mismatch or invalid idToken";
+    } else if (err.message && err.message.includes('expired')) {
+      errorMessage = "Expired idToken";
+    } else if (err.message) {
+      errorMessage = `Token verification failed: ${process.env.NODE_ENV === "production"? "": err.message}`;
+    }
+    res.status(401).json({ error: errorMessage });
   }
 });
 
