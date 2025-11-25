@@ -27,7 +27,7 @@ jobs:
         cache-dependency-path: package-lock.json
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --legacy-peer-deps
 
     - name: Run ESLint (SAST - Code Analysis)
       run: |
@@ -101,14 +101,6 @@ jobs:
         echo "DEP_OPTIONAL=$DEP_OPTIONAL" >> $GITHUB_ENV
         echo "DEP_PEER=$DEP_PEER" >> $GITHUB_ENV
 
-    - name: Upload audit report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: audit-report
-        path: audit-report.json
-        retention-days: 30
-
     - name: Check for high severity vulnerabilities
       run: |
         HIGH_JSON=$(npm audit --audit-level=high --json || echo "{}")
@@ -124,7 +116,7 @@ jobs:
           echo "HIGH_SEVERITY_STATUS=✅ No high severity vulnerabilities found" >> $GITHUB_ENV
         fi
 
-    - name: Generate Security Report
+    - name: Generate Comprehensive Security Report
       if: always()
       run: |
         echo "# Security Scan Report - Backend" > SECURITY_REPORT.md
@@ -136,71 +128,138 @@ jobs:
         echo "- ESLint with Security Plugins: Static code analysis for JavaScript/Node.js" >> SECURITY_REPORT.md
         echo "- npm audit: Dependency vulnerability scanning" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        echo "## Summary" >> SECURITY_REPORT.md
-        echo "| Metric | Value |" >> SECURITY_REPORT.md
-        echo "| --- | --- |" >> SECURITY_REPORT.md
-        echo "| ESLint errors | ${TOTAL_ERRORS:-0} (in ${ESLINT_ERRORS:-0} files) |" >> SECURITY_REPORT.md
-        echo "| ESLint warnings | ${TOTAL_WARNINGS:-0} (in ${ESLINT_WARNINGS:-0} files) |" >> SECURITY_REPORT.md
-        echo "| Dependencies vulnerabilities (total) | ${VULN_TOTAL:-0} |" >> SECURITY_REPORT.md
-        echo "| High severity check | ${HIGH_SEVERITY_STATUS:-Not evaluated} |" >> SECURITY_REPORT.md
-        echo "| Dependencies scanned | ${DEP_TOTAL:-0} (prod ${DEP_PROD:-0} / dev ${DEP_DEV:-0} / optional ${DEP_OPTIONAL:-0} / peer ${DEP_PEER:-0}) |" >> SECURITY_REPORT.md
+        echo "---" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        echo "## ESLint Security Analysis (SAST)" >> SECURITY_REPORT.md
+        echo "## Executive Summary" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        if [ -f eslint-output.txt ]; then
-          echo "### ESLint Results" >> SECURITY_REPORT.md
+        echo "| Metric | Value | Status |" >> SECURITY_REPORT.md
+        echo "| --- | --- | --- |" >> SECURITY_REPORT.md
+        echo "| ESLint errors | ${TOTAL_ERRORS:-0} (in ${ESLINT_ERRORS:-0} files) | $([ "$TOTAL_ERRORS" -gt 0 ] && echo "❌" || echo "✅") |" >> SECURITY_REPORT.md
+        echo "| ESLint warnings | ${TOTAL_WARNINGS:-0} (in ${ESLINT_WARNINGS:-0} files) | $([ "$TOTAL_WARNINGS" -gt 0 ] && echo "⚠️" || echo "✅") |" >> SECURITY_REPORT.md
+        echo "| Dependencies vulnerabilities (total) | ${VULN_TOTAL:-0} | $([ "$VULN_TOTAL" -gt 0 ] && echo "⚠️" || echo "✅") |" >> SECURITY_REPORT.md
+        echo "| High severity check | ${HIGH_SEVERITY_STATUS:-Not evaluated} | $([ -n "$HIGH_SEVERITY_STATUS" ] && echo "$HIGH_SEVERITY_STATUS" | grep -q "❌" && echo "❌" || echo "✅") |" >> SECURITY_REPORT.md
+        echo "| Dependencies scanned | ${DEP_TOTAL:-0} (prod ${DEP_PROD:-0} / dev ${DEP_DEV:-0} / optional ${DEP_OPTIONAL:-0} / peer ${DEP_PEER:-0}) | - |" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "---" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## 1. ESLint Security Analysis (SAST - Code Analysis)" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### Summary" >> SECURITY_REPORT.md
+        echo "- Files with errors: ${ESLINT_ERRORS:-0}" >> SECURITY_REPORT.md
+        echo "- Files with warnings: ${ESLINT_WARNINGS:-0}" >> SECURITY_REPORT.md
+        echo "- Total errors: ${TOTAL_ERRORS:-0}" >> SECURITY_REPORT.md
+        echo "- Total warnings: ${TOTAL_WARNINGS:-0}" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        if [ -f eslint-output.txt ] && [ -s eslint-output.txt ]; then
+          echo "### Detailed ESLint Results" >> SECURITY_REPORT.md
           echo "\`\`\`" >> SECURITY_REPORT.md
           cat eslint-output.txt >> SECURITY_REPORT.md
           echo "\`\`\`" >> SECURITY_REPORT.md
           echo "" >> SECURITY_REPORT.md
         else
-          echo "⚠️ ESLint output not available" >> SECURITY_REPORT.md
+          echo "### Detailed ESLint Results" >> SECURITY_REPORT.md
+          echo "✅ No ESLint issues found or output not available." >> SECURITY_REPORT.md
           echo "" >> SECURITY_REPORT.md
         fi
-        echo "### Severity Breakdown (Dependencies)" >> SECURITY_REPORT.md
-        echo "- Critical: ${VULN_CRITICAL:-0}" >> SECURITY_REPORT.md
-        echo "- High: ${VULN_HIGH:-0}" >> SECURITY_REPORT.md
-        echo "- Moderate: ${VULN_MODERATE:-0}" >> SECURITY_REPORT.md
-        echo "- Low: ${VULN_LOW:-0}" >> SECURITY_REPORT.md
+        if [ -f eslint-report.json ] && [ -s eslint-report.json ]; then
+          echo "### ESLint JSON Report (Summary)" >> SECURITY_REPORT.md
+          echo "Full JSON report available in artifact: \`eslint-report.json\`" >> SECURITY_REPORT.md
+          echo "" >> SECURITY_REPORT.md
+        fi
+        echo "---" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        echo "## npm audit Results" >> SECURITY_REPORT.md
+        echo "## 2. npm audit Results (Dependency Vulnerabilities)" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        echo "### Detailed Findings" >> SECURITY_REPORT.md
-        if [ -f audit-report.json ]; then
+        echo "### Severity Breakdown" >> SECURITY_REPORT.md
+        echo "- **Critical:** ${VULN_CRITICAL:-0}" >> SECURITY_REPORT.md
+        echo "- **High:** ${VULN_HIGH:-0}" >> SECURITY_REPORT.md
+        echo "- **Moderate:** ${VULN_MODERATE:-0}" >> SECURITY_REPORT.md
+        echo "- **Low:** ${VULN_LOW:-0}" >> SECURITY_REPORT.md
+        echo "- **Total:** ${VULN_TOTAL:-0}" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### Dependency Footprint" >> SECURITY_REPORT.md
+        echo "- Total dependencies: ${DEP_TOTAL:-0}" >> SECURITY_REPORT.md
+        echo "- Production: ${DEP_PROD:-0}" >> SECURITY_REPORT.md
+        echo "- Development: ${DEP_DEV:-0}" >> SECURITY_REPORT.md
+        echo "- Optional: ${DEP_OPTIONAL:-0}" >> SECURITY_REPORT.md
+        echo "- Peer: ${DEP_PEER:-0}" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        if [ -f audit-report.json ] && [ -s audit-report.json ]; then
           VULN_COUNT=$(jq -r '.vulnerabilities | length' audit-report.json 2>/dev/null || echo "0")
           if [ "$VULN_COUNT" -gt 0 ]; then
-            echo "Top findings:" >> SECURITY_REPORT.md
+            echo "### Top Vulnerabilities" >> SECURITY_REPORT.md
             echo "" >> SECURITY_REPORT.md
             cat top_vulns.md >> SECURITY_REPORT.md
             echo "" >> SECURITY_REPORT.md
+            echo "> Full JSON report available in artifact: \`audit-report.json\`" >> SECURITY_REPORT.md
+            echo "" >> SECURITY_REPORT.md
           else
+            echo "### Detailed Findings" >> SECURITY_REPORT.md
             echo "✅ No vulnerabilities found" >> SECURITY_REPORT.md
+            echo "" >> SECURITY_REPORT.md
           fi
         else
+          echo "### Detailed Findings" >> SECURITY_REPORT.md
           echo "⚠️ Audit report not available" >> SECURITY_REPORT.md
+          echo "" >> SECURITY_REPORT.md
+        fi
+        if [ -f high-severity-report.json ] && [ -s high-severity-report.json ]; then
+          echo "### High Severity Vulnerabilities" >> SECURITY_REPORT.md
+          echo "⚠️ **High severity vulnerabilities detected!**" >> SECURITY_REPORT.md
+          echo "" >> SECURITY_REPORT.md
+          echo "Full details available in artifact: \`high-severity-report.json\`" >> SECURITY_REPORT.md
+          echo "" >> SECURITY_REPORT.md
+          HIGH_COUNT=$(jq -r '.vulnerabilities | length' high-severity-report.json 2>/dev/null || echo "0")
+          if [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "**Count:** $HIGH_COUNT high severity issue(s)" >> SECURITY_REPORT.md
+            echo "" >> SECURITY_REPORT.md
+          fi
+        fi
+        echo "---" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## 3. Recommendations" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        if [ "$TOTAL_ERRORS" -gt 0 ]; then
+          echo "- ⚠️ **Fix ESLint errors:** Review and fix ${TOTAL_ERRORS} error(s) found in code analysis" >> SECURITY_REPORT.md
+        fi
+        if [ "$TOTAL_WARNINGS" -gt 0 ]; then
+          echo "- ⚠️ **Review ESLint warnings:** Address ${TOTAL_WARNINGS} warning(s) to improve code quality" >> SECURITY_REPORT.md
+        fi
+        if [ "$VULN_CRITICAL" -gt 0 ] || [ "$VULN_HIGH" -gt 0 ]; then
+          echo "- 🔴 **Urgent:** Fix ${VULN_CRITICAL} critical and ${VULN_HIGH} high severity dependency vulnerabilities" >> SECURITY_REPORT.md
+        fi
+        if [ "$VULN_MODERATE" -gt 0 ]; then
+          echo "- 🟡 **Review:** Address ${VULN_MODERATE} moderate severity dependency vulnerabilities" >> SECURITY_REPORT.md
+        fi
+        if [ "$TOTAL_ERRORS" -eq 0 ] && [ "$VULN_CRITICAL" -eq 0 ] && [ "$VULN_HIGH" -eq 0 ]; then
+          echo "- ✅ **Good:** No critical issues found. Continue monitoring." >> SECURITY_REPORT.md
+        fi
+        echo "" >> SECURITY_REPORT.md
+        echo "---" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## 4. Additional Artifacts" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "For detailed analysis, refer to the following artifacts:" >> SECURITY_REPORT.md
+        echo "- \`eslint-report.json\` - Complete ESLint analysis in JSON format" >> SECURITY_REPORT.md
+        echo "- \`audit-report.json\` - Complete npm audit results in JSON format" >> SECURITY_REPORT.md
+        if [ -f high-severity-report.json ] && [ -s high-severity-report.json ]; then
+          echo "- \`high-severity-report.json\` - High severity vulnerabilities details" >> SECURITY_REPORT.md
         fi
 
-    - name: Upload Security Report
+    - name: Prepare artifacts for upload
+      if: always()
+      run: |
+        mkdir -p security-artifacts
+        cp SECURITY_REPORT.md security-artifacts/ || true
+        cp eslint-report.json security-artifacts/ 2>/dev/null || touch security-artifacts/eslint-report.json
+        cp audit-report.json security-artifacts/ 2>/dev/null || touch security-artifacts/audit-report.json
+        cp high-severity-report.json security-artifacts/ 2>/dev/null || true
+
+    - name: Upload Comprehensive Security Report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-report
-        path: SECURITY_REPORT.md
+        path: security-artifacts/*
         retention-days: 90
-
-    - name: Upload High Severity Report
-      uses: actions/upload-artifact@v4
-      if: ${{ always() && env.HIGH_SEVERITY_STATUS && contains(env.HIGH_SEVERITY_STATUS, '❌') && hashFiles('high-severity-report.json') != '' }}
-      with:
-        name: high-severity-report
-        path: high-severity-report.json
-        retention-days: 30
-
-    - name: Upload ESLint Report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: eslint-report
-        path: eslint-report.json
-        retention-days: 30
 
