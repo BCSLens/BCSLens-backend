@@ -35,6 +35,53 @@ jobs:
         npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY || true
         npm audit --audit-level=moderate --json > audit-report.json || true
 
+    - name: Summarize audit results
+      run: |
+        touch top_vulns.md
+        if [ -f audit-report.json ]; then
+          VULN_TOTAL=$(jq -r '.metadata.vulnerabilities.total // 0' audit-report.json 2>/dev/null || echo "0")
+          VULN_LOW=$(jq -r '.metadata.vulnerabilities.low // 0' audit-report.json 2>/dev/null || echo "0")
+          VULN_MODERATE=$(jq -r '.metadata.vulnerabilities.moderate // 0' audit-report.json 2>/dev/null || echo "0")
+          VULN_HIGH=$(jq -r '.metadata.vulnerabilities.high // 0' audit-report.json 2>/dev/null || echo "0")
+          VULN_CRITICAL=$(jq -r '.metadata.vulnerabilities.critical // 0' audit-report.json 2>/dev/null || echo "0")
+          DEP_TOTAL=$(jq -r '.metadata.dependencies.total // 0' audit-report.json 2>/dev/null || echo "0")
+          DEP_PROD=$(jq -r '.metadata.dependencies.prod // 0' audit-report.json 2>/dev/null || echo "0")
+          DEP_DEV=$(jq -r '.metadata.dependencies.dev // 0' audit-report.json 2>/dev/null || echo "0")
+          DEP_OPTIONAL=$(jq -r '.metadata.dependencies.optional // 0' audit-report.json 2>/dev/null || echo "0")
+          DEP_PEER=$(jq -r '.metadata.dependencies.peer // 0' audit-report.json 2>/dev/null || echo "0")
+          jq -r '
+            .vulnerabilities
+            | to_entries
+            | sort_by(.value.severity) 
+            | reverse
+            | .[:10]
+            | if length == 0 then ["No vulnerabilities reported."] else map("- **\(.key)** (\(.value.severity)) - \(.value.title)") end
+            | .[]
+          ' audit-report.json > top_vulns.md 2>/dev/null || echo "No vulnerability details available." > top_vulns.md
+        else
+          VULN_TOTAL=0
+          VULN_LOW=0
+          VULN_MODERATE=0
+          VULN_HIGH=0
+          VULN_CRITICAL=0
+          DEP_TOTAL=0
+          DEP_PROD=0
+          DEP_DEV=0
+          DEP_OPTIONAL=0
+          DEP_PEER=0
+          echo "Audit report not generated." > top_vulns.md
+        fi
+        echo "VULN_TOTAL=$VULN_TOTAL" >> $GITHUB_ENV
+        echo "VULN_LOW=$VULN_LOW" >> $GITHUB_ENV
+        echo "VULN_MODERATE=$VULN_MODERATE" >> $GITHUB_ENV
+        echo "VULN_HIGH=$VULN_HIGH" >> $GITHUB_ENV
+        echo "VULN_CRITICAL=$VULN_CRITICAL" >> $GITHUB_ENV
+        echo "DEP_TOTAL=$DEP_TOTAL" >> $GITHUB_ENV
+        echo "DEP_PROD=$DEP_PROD" >> $GITHUB_ENV
+        echo "DEP_DEV=$DEP_DEV" >> $GITHUB_ENV
+        echo "DEP_OPTIONAL=$DEP_OPTIONAL" >> $GITHUB_ENV
+        echo "DEP_PEER=$DEP_PEER" >> $GITHUB_ENV
+
     - name: Upload audit report
       uses: actions/upload-artifact@v4
       if: always()
@@ -47,9 +94,11 @@ jobs:
       run: |
         if npm audit --audit-level=high --json | jq -e '.vulnerabilities | length > 0' > /dev/null 2>&1; then
           echo "❌ High severity vulnerabilities found!"
+          echo "HIGH_SEVERITY_STATUS=❌ High severity vulnerabilities found" >> $GITHUB_ENV
           exit 1
         else
           echo "✅ No high severity vulnerabilities found"
+          echo "HIGH_SEVERITY_STATUS=✅ No high severity vulnerabilities found" >> $GITHUB_ENV
         fi
 
     - name: Generate Security Report
@@ -58,14 +107,29 @@ jobs:
         echo "# Security Scan Report - Backend" > SECURITY_REPORT.md
         echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
+        echo "## Summary" >> SECURITY_REPORT.md
+        echo "| Metric | Value |" >> SECURITY_REPORT.md
+        echo "| --- | --- |" >> SECURITY_REPORT.md
+        echo "| Vulnerabilities (total) | ${VULN_TOTAL:-0} |" >> SECURITY_REPORT.md
+        echo "| High severity check | ${HIGH_SEVERITY_STATUS:-Not evaluated} |" >> SECURITY_REPORT.md
+        echo "| Dependencies scanned | ${DEP_TOTAL:-0} (prod ${DEP_PROD:-0} / dev ${DEP_DEV:-0} / optional ${DEP_OPTIONAL:-0} / peer ${DEP_PEER:-0}) |" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### Severity Breakdown" >> SECURITY_REPORT.md
+        echo "- Critical: ${VULN_CRITICAL:-0}" >> SECURITY_REPORT.md
+        echo "- High: ${VULN_HIGH:-0}" >> SECURITY_REPORT.md
+        echo "- Moderate: ${VULN_MODERATE:-0}" >> SECURITY_REPORT.md
+        echo "- Low: ${VULN_LOW:-0}" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
         echo "## npm audit Results" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
+        echo "### Detailed Findings" >> SECURITY_REPORT.md
         if [ -f audit-report.json ]; then
           VULN_COUNT=$(jq -r '.vulnerabilities | length' audit-report.json 2>/dev/null || echo "0")
           if [ "$VULN_COUNT" -gt 0 ]; then
-            echo "### Vulnerabilities Found: $VULN_COUNT" >> SECURITY_REPORT.md
+            echo "Top findings:" >> SECURITY_REPORT.md
             echo "" >> SECURITY_REPORT.md
-            jq -r '.vulnerabilities | to_entries[] | "- **\(.key)**: \(.value.severity) - \(.value.title)"' audit-report.json >> SECURITY_REPORT.md 2>/dev/null || echo "Unable to parse vulnerabilities" >> SECURITY_REPORT.md
+            cat top_vulns.md >> SECURITY_REPORT.md
+            echo "" >> SECURITY_REPORT.md
           else
             echo "✅ No vulnerabilities found" >> SECURITY_REPORT.md
           fi
