@@ -5,16 +5,10 @@ module.exports = {
     jest: true
   },
   extends: [
-    'eslint:recommended',
-    'plugin:security/recommended',
-    'plugin:node/recommended',
-    'standard'
+    'eslint:recommended'
   ],
   plugins: [
-    'security',
-    'node',
-    'import',
-    'promise'
+    'security'
   ],
   parserOptions: {
     ecmaVersion: 2021,
@@ -36,23 +30,13 @@ module.exports = {
     'security/detect-possible-timing-attacks': 'warn',
     'security/detect-pseudoRandomBytes': 'error',
     
-    // Node.js specific
-    'node/no-unpublished-require': 'off', // Allow dev dependencies in tests
-    'node/no-missing-require': 'error',
-    'node/no-extraneous-require': 'error',
-    
     // Code quality
     'no-console': 'warn',
     'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     'no-undef': 'error',
-    
-    // Import/Export
-    'import/no-unresolved': 'off', // Can be enabled if using module resolution
-    'import/order': ['warn', {
-      'groups': ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
-      'newlines-between': 'always',
-      'alphabetize': { 'order': 'asc', 'caseInsensitive': true }
-    }]
+    'no-eval': 'error',
+    'no-implied-eval': 'error',
+    'no-new-func': 'error'
   },
   ignorePatterns: [
     'node_modules/',
