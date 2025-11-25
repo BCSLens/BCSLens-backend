@@ -29,6 +29,25 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Run ESLint (SAST - Code Analysis)
+      run: |
+        echo "## ESLint Security Analysis (SAST)" >> $GITHUB_STEP_SUMMARY
+        npm run lint -- --format json --output-file eslint-report.json || true
+        npm run lint > eslint-output.txt 2>&1 || true
+        cat eslint-output.txt
+        ESLINT_ERRORS=$(jq '[.[] | select(.errorCount > 0)] | length' eslint-report.json 2>/dev/null || echo "0")
+        ESLINT_WARNINGS=$(jq '[.[] | select(.warningCount > 0)] | length' eslint-report.json 2>/dev/null || echo "0")
+        TOTAL_ERRORS=$(jq '[.[] | .errorCount] | add' eslint-report.json 2>/dev/null || echo "0")
+        TOTAL_WARNINGS=$(jq '[.[] | .warningCount] | add' eslint-report.json 2>/dev/null || echo "0")
+        echo "ESLINT_ERRORS=$ESLINT_ERRORS" >> $GITHUB_ENV
+        echo "ESLINT_WARNINGS=$ESLINT_WARNINGS" >> $GITHUB_ENV
+        echo "TOTAL_ERRORS=$TOTAL_ERRORS" >> $GITHUB_ENV
+        echo "TOTAL_WARNINGS=$TOTAL_WARNINGS" >> $GITHUB_ENV
+        echo "Files with errors: $ESLINT_ERRORS" >> $GITHUB_STEP_SUMMARY
+        echo "Files with warnings: $ESLINT_WARNINGS" >> $GITHUB_STEP_SUMMARY
+        echo "Total errors: $TOTAL_ERRORS" >> $GITHUB_STEP_SUMMARY
+        echo "Total warnings: $TOTAL_WARNINGS" >> $GITHUB_STEP_SUMMARY
+
     - name: Run npm audit
       run: |
         echo "## Backend Security Audit" >> $GITHUB_STEP_SUMMARY
@@ -111,14 +130,34 @@ jobs:
         echo "# Security Scan Report - Backend" > SECURITY_REPORT.md
         echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
+        echo "## Tool: ESLint + npm audit (SAST)" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### Analysis Methods" >> SECURITY_REPORT.md
+        echo "- ESLint with Security Plugins: Static code analysis for JavaScript/Node.js" >> SECURITY_REPORT.md
+        echo "- npm audit: Dependency vulnerability scanning" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
         echo "## Summary" >> SECURITY_REPORT.md
         echo "| Metric | Value |" >> SECURITY_REPORT.md
         echo "| --- | --- |" >> SECURITY_REPORT.md
-        echo "| Vulnerabilities (total) | ${VULN_TOTAL:-0} |" >> SECURITY_REPORT.md
+        echo "| ESLint errors | ${TOTAL_ERRORS:-0} (in ${ESLINT_ERRORS:-0} files) |" >> SECURITY_REPORT.md
+        echo "| ESLint warnings | ${TOTAL_WARNINGS:-0} (in ${ESLINT_WARNINGS:-0} files) |" >> SECURITY_REPORT.md
+        echo "| Dependencies vulnerabilities (total) | ${VULN_TOTAL:-0} |" >> SECURITY_REPORT.md
         echo "| High severity check | ${HIGH_SEVERITY_STATUS:-Not evaluated} |" >> SECURITY_REPORT.md
         echo "| Dependencies scanned | ${DEP_TOTAL:-0} (prod ${DEP_PROD:-0} / dev ${DEP_DEV:-0} / optional ${DEP_OPTIONAL:-0} / peer ${DEP_PEER:-0}) |" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        echo "### Severity Breakdown" >> SECURITY_REPORT.md
+        echo "## ESLint Security Analysis (SAST)" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        if [ -f eslint-output.txt ]; then
+          echo "### ESLint Results" >> SECURITY_REPORT.md
+          echo "\`\`\`" >> SECURITY_REPORT.md
+          cat eslint-output.txt >> SECURITY_REPORT.md
+          echo "\`\`\`" >> SECURITY_REPORT.md
+          echo "" >> SECURITY_REPORT.md
+        else
+          echo "⚠️ ESLint output not available" >> SECURITY_REPORT.md
+          echo "" >> SECURITY_REPORT.md
+        fi
+        echo "### Severity Breakdown (Dependencies)" >> SECURITY_REPORT.md
         echo "- Critical: ${VULN_CRITICAL:-0}" >> SECURITY_REPORT.md
         echo "- High: ${VULN_HIGH:-0}" >> SECURITY_REPORT.md
         echo "- Moderate: ${VULN_MODERATE:-0}" >> SECURITY_REPORT.md
@@ -155,5 +194,13 @@ jobs:
       with:
         name: high-severity-report
         path: high-severity-report.json
+        retention-days: 30
+
+    - name: Upload ESLint Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: eslint-report
+        path: eslint-report.json
         retention-days: 30
 
