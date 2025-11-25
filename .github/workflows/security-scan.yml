@@ -2,9 +2,9 @@ name: "Security Scanning"
 
 on:
   push:
-    branches: [ "main", "develop", "master" ]
+    branches: [ "main", "develop", "master", "feature/security" ]
   pull_request:
-    branches: [ "main", "develop", "master" ]
+    branches: [ "main", "develop", "master", "feature/security" ]
   schedule:
     # Run weekly on Monday at 01:00 UTC
     - cron: '0 1 * * 1'
