@@ -1,0 +1,83 @@
+name: "Security Scanning"
+
+on:
+  push:
+    branches: [ "main", "develop", "master" ]
+  pull_request:
+    branches: [ "main", "develop", "master" ]
+  schedule:
+    # Run weekly on Monday at 01:00 UTC
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    name: "Backend Security Scan (Node.js)"
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run npm audit
+      run: |
+        echo "## Backend Security Audit" >> $GITHUB_STEP_SUMMARY
+        npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY || true
+        npm audit --audit-level=moderate --json > audit-report.json || true
+
+    - name: Upload audit report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: audit-report
+        path: audit-report.json
+        retention-days: 30
+
+    - name: Check for high severity vulnerabilities
+      run: |
+        if npm audit --audit-level=high --json | jq -e '.vulnerabilities | length > 0' > /dev/null 2>&1; then
+          echo "❌ High severity vulnerabilities found!"
+          exit 1
+        else
+          echo "✅ No high severity vulnerabilities found"
+        fi
+
+    - name: Generate Security Report
+      if: always()
+      run: |
+        echo "# Security Scan Report - Backend" > SECURITY_REPORT.md
+        echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## npm audit Results" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        if [ -f audit-report.json ]; then
+          VULN_COUNT=$(jq -r '.vulnerabilities | length' audit-report.json 2>/dev/null || echo "0")
+          if [ "$VULN_COUNT" -gt 0 ]; then
+            echo "### Vulnerabilities Found: $VULN_COUNT" >> SECURITY_REPORT.md
+            echo "" >> SECURITY_REPORT.md
+            jq -r '.vulnerabilities | to_entries[] | "- **\(.key)**: \(.value.severity) - \(.value.title)"' audit-report.json >> SECURITY_REPORT.md 2>/dev/null || echo "Unable to parse vulnerabilities" >> SECURITY_REPORT.md
+          else
+            echo "✅ No vulnerabilities found" >> SECURITY_REPORT.md
+          fi
+        else
+          echo "⚠️ Audit report not available" >> SECURITY_REPORT.md
+        fi
+
+    - name: Upload Security Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-report
+        path: SECURITY_REPORT.md
+        retention-days: 90
+
