@@ -11,3 +11,7 @@ haarcascade_*
 # Log files
 logs/
 *.log
+
+# ESLint reports (generated in CI/CD)
+eslint-report.json
+eslint-output.txt
